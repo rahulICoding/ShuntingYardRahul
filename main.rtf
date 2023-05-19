@@ -1,0 +1,238 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2707
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 //Rahul Iyer\
+//Shunting Yard\
+//video that helped me understand shunting yard when implementing: https://www.youtube.com/watch?v=Wz85Hiwi5MY&ab_channel=CompSciin5\
+//thanks Armaan for helping me out\
+//also helped me understand: https://en.wikipedia.org/wiki/Shunting_yard_algorithm\
+\
+#include <cstring>\
+#include <iostream>\
+#include <vector>\
+\
+using namespace std;\
+\
+//node struct\
+struct node \{\
+  char data;\
+  node *next;\
+  node(char dataNode) \{\
+    data = dataNode;\
+    next = NULL;\
+  \}\
+\};\
+\
+//tree struct\
+struct treenode \{\
+  char data;\
+  treenode *right;\
+  treenode *left;\
+  treenode(char dataTree) \{\
+    data = dataTree;\
+    right = NULL;\
+    left = NULL;\
+  \}\
+\};\
+\
+//function prototype\
+void enqueue(node *&queueH, int nodeVal);\
+void dequeue(node *&queueH);\
+void push(node *&stackH, char nodeVal);\
+void pop(node *&stackH);\
+char peek(node *stackH);\
+int precedence(char op);\
+void postfixToBinaryTree(node* queueH, treenode* &treeRoot);\
+void treeToInfix(treenode* treeRoot);\
+void treeToPrefix(treenode* treeRoot);\
+void treeToPostfix(treenode* treeRoot);\
+\
+int main() \{\
+  //variables used\
+  node *stackH = NULL;\
+  node *queueH = NULL;\
+  char *equation = new char[50];\
+\
+  cout << "input an equation without spaces" << endl;\
+  cin.get(equation, 50);\
+  cin.ignore(1, '\\n');\
+\
+  for (int i = 0; i < strlen(equation); i++) \{ //creating the postfix eqution from infix\
+    if (isdigit(equation[i]) == true) \{\
+      enqueue(queueH, equation[i]);\
+    \}\
+    else if ((equation[i] == '^') || (equation[i] == '*') || (equation[i] == '/') || (equation[i] == '+') || (equation[i] == '-')) \{ //adding the operators to the queue\
+      int o1 = precedence(equation[i]); \
+      int o2 = precedence(peek(stackH)); \
+      while (((stackH != NULL) && (peek(stackH) != '(')) && ((o1 > o2) || (o1 == o2 && equation[i] != '^'))) \{\
+        //thanks to Wikipedia and Compsci in 5\
+        enqueue(queueH, peek(stackH));\
+        pop(stackH);\
+      \}\
+      push(stackH, equation[i]); //adding the last val in the equation\
+    \}\
+    else if ((equation[i] == '(') || (equation[i] == ')')) \{\
+      if (equation[i] == '(') \{\
+        push(stackH, equation[i]);\
+      \}\
+      if (equation[i] == ')') \{ //when find a right parenthesis have to pop all the operators in there and enqueue them\
+        while (peek(stackH) != '(') \{\
+          enqueue(queueH, peek(stackH));\
+          pop(stackH);\
+        \}\
+        pop(stackH); //getting rid of the left parenthesis    \
+      \}\
+    \}\
+    else \{ //reset all the values in the equation char array and the queue/stack \
+      cout << "input again" << endl;\
+      for (int i = 0; i < strlen(equation); i++) \{\
+        equation[i] = NULL;\
+      \}\
+      // delete all nodes in stack and queue\
+      while (queueH != NULL) \{ \
+        dequeue(queueH);\
+      \}\
+      while (stackH != NULL) \{\
+        pop(stackH);\
+      \}\
+    \}\
+  \}\
+  while (stackH != NULL) \{ // put all remaining operators in stack into queue\
+    enqueue(queueH, peek(stackH));\
+    pop(stackH);\
+  \}\
+  node* temp = queueH;\
+  while (temp->next != NULL) \{\
+    cout << temp->data << endl;\
+    temp = temp->next;\
+  \}\
+  cout << temp->data << endl;\
+  cout << "" << endl;  \
+\
+  treenode* tree = NULL;\
+  postfixToBinaryTree(queueH, tree);\
+\
+  // print out results\
+  cout << "Infix - ";\
+  treeToInfix(tree);\
+  cout << endl;\
+  cout << "Prefix -  "; \
+  treeToPrefix(tree); \
+  cout << endl;\
+  cout << "Postfix -  "; \
+  treeToPostfix(tree);\
+  cout << endl;\
+\
+\}\
+\
+void postfixToBinaryTree(node* queueH, treenode* &tree) \{ //thank you to wikipedia\
+  //postfix to tree\
+    vector<treenode*> stackTree;\
+    node* current = queueH;\
+    while (current != NULL) \{  //going through the queue\
+        if (isdigit(current->data)) \{ \
+            stackTree.push_back(new treenode(current->data));\
+        \}\
+        else \{ //has to be an operator\
+            treenode* nTree = new treenode(current->data);\
+            nTree->right = stackTree.back();\
+            stackTree.pop_back();\
+            nTree->left = stackTree.back();\
+            stackTree.pop_back();\
+            stackTree.push_back(nTree);\
+        \}\
+        current = current->next;\
+    \}\
+    tree = stackTree.back(); \
+\}\
+\
+void treeToPrefix(treenode* tree) \{ //tree to prefix\
+    if (tree != NULL) \{\
+        cout << tree->data;\
+        treeToPrefix(tree->left); //left then right\
+        treeToPrefix(tree->right); \
+    \}\
+\}\
+void treeToInfix(treenode* tree) \{ //tree to infix\
+    if (tree == NULL) \{\
+        return;\
+    \}\
+    treeToInfix(tree->left); //left then right\
+    cout << tree->data; \
+    treeToInfix(tree->right); \
+\}\
+\
+void treeToPostfix(treenode* tree) \{ //tree to postfix\
+    if (tree != NULL) \{ \
+        treeToPostfix(tree->left);  //left then right\
+        treeToPostfix(tree->right); \
+        cout << tree->data; \
+    \}\
+\}\
+\
+int precedence(char op) \{ // operators pedmas\
+  if (op == '^') \{\
+    return 1;\
+  \} else if ((op == '*') || (op == '/')) \{\
+    return 2;\
+  \} else if ((op == '+') || (op == '-')) \{\
+    return 3;\
+  \} else \{\
+    return 4;\
+  \}\
+\}\
+\
+void dequeue(node *&queueH) \{ //get rid of the first val\
+  if (queueH == NULL) \{\
+    return;\
+  \} else \{\
+    node *temp = queueH;\
+    queueH = queueH->next;\
+    delete temp;\
+  \}\
+\}\
+\
+void enqueue(node *&queueH, int nodeVal) \{ //add to the queue LIFO\
+  node *newQueue = new node(nodeVal);\
+  if (queueH == NULL) \{\
+    queueH = newQueue;\
+  \} else \{\
+    node *temp = queueH;\
+    while (temp->next != NULL) \{\
+      temp = temp->next;\
+    \}\
+    temp->next = newQueue;\
+  \}\
+\}\
+\
+void push(node *&stackH, char nodeVal) \{ //add to the stack LIFO\
+  node *nstackH = new node(nodeVal);\
+  if (stackH == NULL) \{\
+    stackH = nstackH;\
+  \} else \{\
+    node *temp = stackH;\
+    stackH = nstackH;\
+    nstackH->next = temp;\
+  \}\
+\}\
+\
+void pop(node *&stackH) \{ //LIFO get rid of the top of the stack\
+  if (stackH == NULL) \{ // if stack is empty\
+    return;\
+  \}\
+  node *temp = stackH->next;\
+  delete stackH;\
+  stackH = temp;\
+\}\
+\
+char peek(node *stackH) \{ //see whats there\
+  if (stackH == NULL) \{ // if stack is empty\
+    return 0;\
+  \}\
+  return stackH->data;\
+\}\
+}
